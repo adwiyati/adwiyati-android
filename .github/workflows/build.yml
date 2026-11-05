@@ -1,0 +1,90 @@
+# Builds the أدويتي Android app from the same files as https://adwiyati.github.io
+# and publishes it as the latest release (adwiyati.apk).
+name: Build Android app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  repository_dispatch:
+    types: [web-updated]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get the app files from the website repository
+        uses: actions/checkout@v4
+        with:
+          repository: adwiyati/adwiyati.github.io
+          path: web
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Prepare app files and icon
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq librsvg2-bin
+          rm -rf www assets && mkdir -p www assets
+          cp web/index.html web/manifest.webmanifest web/icon.svg www/
+          cp -r web/voice www/
+          rsvg-convert -w 1024 -h 1024 web/icon.svg -o assets/icon-only.png
+          rsvg-convert -w 2732 -h 2732 -b "#14504f" web/icon.svg -o assets/splash.png
+          cp assets/icon-only.png assets/icon-foreground.png
+          rsvg-convert -w 1024 -h 1024 -b "#14504f" web/icon.svg -o assets/icon-background.png
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Create Android project
+        run: |
+          npx cap add android
+          npx capacitor-assets generate --android --iconBackgroundColor "#14504f" --splashBackgroundColor "#14504f"
+
+      - name: Add sounds, icon, permissions, version
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: "2.0.${{ github.run_number }}"
+        run: node scripts/patch-android.js
+
+      - name: Sync and build
+        run: |
+          npx cap sync android
+          cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon -q
+
+      - name: Sign
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.KS_PASS }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > ks.p12
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/zipalign" -p -f 4 android/app/build/outputs/apk/release/app-release-unsigned.apk aligned.apk
+          "$BT/apksigner" sign --ks ks.p12 --ks-type PKCS12 --ks-key-alias adwiyati \
+            --ks-pass env:KS_PASS --key-pass env:KS_PASS --out adwiyati.apk aligned.apk
+          "$BT/apksigner" verify adwiyati.apk
+          rm -f ks.p12 aligned.apk
+          ls -la adwiyati.apk
+
+      - name: Publish as latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v2.0.${{ github.run_number }}"
+          gh release create "$TAG" adwiyati.apk --title "أدويتي $TAG" \
+            --notes "تطبيق أدويتي لأندرويد. حمّل الملف adwiyati.apk وثبّته." --latest
