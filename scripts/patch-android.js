@@ -5,6 +5,8 @@ const A = "android/app/src/main";
 const raw = path.join(A, "res/raw"); fs.mkdirSync(raw, { recursive: true });
 fs.copyFileSync("www/voice/f-none.mp3", path.join(raw, "voice_f.mp3"));
 fs.copyFileSync("www/voice/m-none.mp3", path.join(raw, "voice_m.mp3"));
+fs.copyFileSync("www/voice/en-f-none.mp3", path.join(raw, "voice_en_f.mp3"));
+fs.copyFileSync("www/voice/en-m-none.mp3", path.join(raw, "voice_en_m.mp3"));
 
 const drawable = path.join(A, "res/drawable"); fs.mkdirSync(drawable, { recursive: true });
 fs.writeFileSync(path.join(drawable, "ic_stat_pill.xml"),
