@@ -14,7 +14,11 @@ fs.writeFileSync(path.join(drawable, "ic_stat_pill.xml"),
 `);
 
 const mf = path.join(A, "AndroidManifest.xml"); let m = fs.readFileSync(mf, "utf8");
-const perms = ["android.permission.POST_NOTIFICATIONS","android.permission.USE_EXACT_ALARM","android.permission.SCHEDULE_EXACT_ALARM",
+// The Google Play build (PLAY=1) leaves out USE_EXACT_ALARM, which Play reserves for alarm-clock and calendar apps;
+// it relies on SCHEDULE_EXACT_ALARM, which the app asks the user to allow.
+const PLAY = process.env.PLAY === "1";
+if (PLAY) m = m.replace(/\s*<uses-permission android:name="android\.permission\.USE_EXACT_ALARM"[^>]*\/>/g, "");
+const perms = ["android.permission.POST_NOTIFICATIONS", ...(PLAY ? [] : ["android.permission.USE_EXACT_ALARM"]), "android.permission.SCHEDULE_EXACT_ALARM",
   "android.permission.RECEIVE_BOOT_COMPLETED","android.permission.VIBRATE","android.permission.WAKE_LOCK"];
 for (const p of perms) if (!m.includes(`"${p}"`)) m = m.replace("<application", `<uses-permission android:name="${p}" />\n    <application`);
 fs.writeFileSync(mf, m);
