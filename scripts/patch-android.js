@@ -25,6 +25,10 @@ const perms = ["android.permission.POST_NOTIFICATIONS", ...(PLAY ? [] : ["androi
 for (const p of perms) if (!m.includes(`"${p}"`)) m = m.replace("<application", `<uses-permission android:name="${p}" />\n    <application`);
 fs.writeFileSync(mf, m);
 
+// Google Play forbids apps that download their own updates: switch the in-app update banner off.
+if (PLAY) { const idx = path.join(A, "assets/public/index.html");
+  if (fs.existsSync(idx)) fs.writeFileSync(idx, fs.readFileSync(idx, "utf8").replace("const STORE_BUILD=false;", "const STORE_BUILD=true;")); }
+
 const gf = "android/app/build.gradle"; let g = fs.readFileSync(gf, "utf8");
 const code = process.env.VERSION_CODE || "1", name = process.env.VERSION_NAME || "1.0";
 g = g.replace(/versionCode \d+/, `versionCode ${code}`).replace(/versionName "[^"]*"/, `versionName "${name}"`);

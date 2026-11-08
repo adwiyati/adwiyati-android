@@ -96,5 +96,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="v2.0.${{ github.run_number }}"
-          gh release create "$TAG" adwiyati.apk adwiyati-play.aab --title "أدويتي $TAG" \
+          APPV=$(grep -o "APP_VERSION=\"[0-9.]*\"" www/index.html | grep -o "[0-9.]*" | head -1)
+          gh release create "$TAG" adwiyati.apk adwiyati-play.aab --title "أدويتي $TAG (app $APPV)" \
             --notes "تطبيق أدويتي لأندرويد. للتثبيت المباشر: adwiyati.apk. ملف adwiyati-play.aab مخصص لرفعه على Google Play." --latest
