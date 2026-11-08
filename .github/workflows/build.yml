@@ -43,10 +43,6 @@ jobs:
           rm -rf www assets && mkdir -p www assets
           cp web/index.html web/manifest.webmanifest web/icon.svg www/
           cp -r web/voice www/
-          rsvg-convert -w 1024 -h 1024 web/icon.svg -o assets/icon-only.png
-          rsvg-convert -w 2732 -h 2732 -b "#14504f" web/icon.svg -o assets/splash.png
-          cp assets/icon-only.png assets/icon-foreground.png
-          rsvg-convert -w 1024 -h 1024 -b "#14504f" web/icon.svg -o assets/icon-background.png
 
       - name: Install
         run: npm install --no-audit --no-fund
@@ -54,7 +50,7 @@ jobs:
       - name: Create Android project
         run: |
           npx cap add android
-          npx capacitor-assets generate --android --iconBackgroundColor "#14504f" --splashBackgroundColor "#14504f"
+          node scripts/make-icons.js
 
       - name: Add sounds, icon, permissions, version
         env:
